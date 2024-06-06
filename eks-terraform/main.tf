@@ -1,10 +1,10 @@
 provider "aws" {
-  region = "us-east-1"  # Specify your desired region
+  region = "ap-south-1"  # Specify your desired region
 }
 
  #Creating IAM role for EKS
   resource "aws_iam_role" "master" {
-    name = "vardhan-eks-master2"
+    name = "veera-eks-master"
 
     assume_role_policy = jsonencode({
       "Version": "2012-10-17",
@@ -36,7 +36,7 @@ provider "aws" {
   }
 
   resource "aws_iam_role" "worker" {
-    name = "vardhan-eks-worker2"
+    name = "veera-eks-worker"
 
     assume_role_policy = jsonencode({
       "Version": "2012-10-17",
@@ -53,7 +53,7 @@ provider "aws" {
   }
 
   resource "aws_iam_policy" "autoscaler" {
-    name = "vardhan-eks-autoscaler-policy2"
+    name = "veera-eks-autoscaler-policy"
     policy = jsonencode({
       "Version": "2012-10-17",
       "Statement": [
@@ -106,7 +106,7 @@ provider "aws" {
 
   resource "aws_iam_instance_profile" "worker" {
     depends_on = [aws_iam_role.worker]
-    name       = "vardhan-eks-worker-new-profile2"
+    name       = "veera-eks-worker-new-profile"
     role       = aws_iam_role.worker.name
   }
  
@@ -121,7 +121,7 @@ data "aws_subnet" "subnet-1" {
  vpc_id = data.aws_vpc.main.id
  filter {
     name = "tag:Name"
-    values = ["Jumphost-subnet1"]
+    values = ["MyPublicSubnet01"]
  }
 }
 
@@ -129,14 +129,14 @@ data "aws_subnet" "subnet-2" {
  vpc_id = data.aws_vpc.main.id
  filter {
     name = "tag:Name"
-    values = ["Jumphost-subnet2"]
+    values = ["MyPublicSubnet02"]
  }
 }
 data "aws_security_group" "selected" {
   vpc_id = data.aws_vpc.main.id
   filter {
     name = "tag:Name"
-    values = ["Jumphost-sg"]
+    values = ["devops-project-veera"]
  }
 }
 
@@ -152,7 +152,7 @@ data "aws_security_group" "selected" {
     tags = {
       "Name" = "MyEKS"
     }
-
+    
     depends_on = [
       aws_iam_role_policy_attachment.AmazonEKSClusterPolicy,
       aws_iam_role_policy_attachment.AmazonEKSServicePolicy,
@@ -169,13 +169,17 @@ data "aws_security_group" "selected" {
     instance_types  = ["t2.small"]
 
     remote_access {
-      ec2_ssh_key               = "sri"
+      ec2_ssh_key               = "account2"
       source_security_group_ids = [data.aws_security_group.selected.id]
     }
 
     labels = {
       env = "dev"
     }
+
+    tags = {
+		  Name = "worker-node"
+	  }
 
     scaling_config {
       desired_size = 2
@@ -186,7 +190,7 @@ data "aws_security_group" "selected" {
     update_config {
       max_unavailable = 1
     }
-
+ 
     depends_on = [
       aws_iam_role_policy_attachment.AmazonEKSWorkerNodePolicy,
       aws_iam_role_policy_attachment.AmazonEKS_CNI_Policy,
